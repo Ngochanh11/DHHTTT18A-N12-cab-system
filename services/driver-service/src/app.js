@@ -1,12 +1,16 @@
-const express = require('express')
-const app = express()
+require("dotenv").config();
+const express = require("express");
+const cors = require("cors");
+const driverRoutes = require("./routes/driver.routes");
 
-app.use(express.json())
+const app = express();
+app.use(cors());
+app.use(express.json());
 
-app.get('/health', (req, res) => {
-  res.send('Ride Service OK')
-})
+app.use("/uploads", express.static("uploads"));
+app.use("/api/v1/drivers", driverRoutes);
 
-app.listen(4001, () => {
-  console.log('Ride Service running on port 4001')
-})
+const PORT = 3003;
+app.listen(PORT, () =>
+  console.log(`Driver Service running on port ${PORT}`)
+);
