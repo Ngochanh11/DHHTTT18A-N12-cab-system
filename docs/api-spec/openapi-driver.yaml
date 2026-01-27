@@ -1,0 +1,299 @@
+openapi: 3.0.3
+info:
+  title: Driver Service API
+  description: Driver management and operations
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:3003/api/v1
+
+tags:
+  - name: Drivers
+    description: Driver management
+  - name: Driver Status
+    description: Driver availability and status
+  - name: Documents
+    description: Driver document management
+
+paths:
+  /drivers:
+    post:
+      tags: [Drivers]
+      summary: Register as driver
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DriverRegistration'
+      responses:
+        '201':
+          description: Driver registration submitted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Driver'
+
+  /drivers/{driverId}:
+    get:
+      tags: [Drivers]
+      summary: Get driver by ID
+      parameters:
+        - in: path
+          name: driverId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Driver details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Driver'
+
+    put:
+      tags: [Drivers]
+      summary: Update driver
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: driverId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateDriverRequest'
+      responses:
+        '200':
+          description: Driver updated
+
+  /drivers/{driverId}/status:
+    put:
+      tags: [Driver Status]
+      summary: Update driver status
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: driverId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [online, offline, busy]
+      responses:
+        '200':
+          description: Status updated
+
+  /drivers/{driverId}/documents:
+    post:
+      tags: [Documents]
+      summary: Upload driver document
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: driverId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                type:
+                  type: string
+                  enum: [license, insurance, vehicle_registration]
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '201':
+          description: Document uploaded
+
+  /drivers/nearby:
+    get:
+      tags: [Drivers]
+      summary: Find nearby drivers
+      parameters:
+        - in: query
+          name: lat
+          required: true
+          schema:
+            type: number
+            format: float
+        - in: query
+          name: lng
+          required: true
+          schema:
+            type: number
+            format: float
+        - in: query
+          name: radius
+          schema:
+            type: number
+            format: float
+            default: 5.0
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: List of nearby drivers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/DriverWithDistance'
+
+  /drivers/{driverId}/earnings:
+    get:
+      tags: [Drivers]
+      summary: Get driver earnings
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: driverId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: period
+          schema:
+            type: string
+            enum: [today, week, month, year]
+            default: month
+      responses:
+        '200':
+          description: Earnings report
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EarningsReport'
+
+components:
+  schemas:
+    DriverRegistration:
+      type: object
+      required: [licenseNumber, vehicleModel, vehiclePlate, vehicleColor]
+      properties:
+        licenseNumber:
+          type: string
+        licenseExpiry:
+          type: string
+          format: date
+        vehicleModel:
+          type: string
+        vehiclePlate:
+          type: string
+        vehicleColor:
+          type: string
+        vehicleYear:
+          type: integer
+        vehicleCapacity:
+          type: integer
+
+    Driver:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        licenseNumber:
+          type: string
+        vehicleModel:
+          type: string
+        vehiclePlate:
+          type: string
+        status:
+          type: string
+          enum: [pending, active, inactive, suspended]
+        isOnline:
+          type: boolean
+        currentLocation:
+          $ref: '#/components/schemas/Location'
+        rating:
+          type: number
+          format: float
+        totalTrips:
+          type: integer
+        totalEarnings:
+          type: number
+          format: float
+
+    UpdateDriverRequest:
+      type: object
+      properties:
+        vehicleModel:
+          type: string
+        vehicleColor:
+          type: string
+        vehicleYear:
+          type: integer
+
+    DriverWithDistance:
+      allOf:
+        - $ref: '#/components/schemas/Driver'
+        - type: object
+          properties:
+            distance:
+              type: number
+              format: float
+              description: Distance in kilometers
+
+    Location:
+      type: object
+      properties:
+        lat:
+          type: number
+          format: float
+        lng:
+          type: number
+          format: float
+        address:
+          type: string
+
+    EarningsReport:
+      type: object
+      properties:
+        totalEarnings:
+          type: number
+          format: float
+        totalTrips:
+          type: integer
+        averageEarningsPerTrip:
+          type: number
+          format: float
+        period:
+          type: string
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

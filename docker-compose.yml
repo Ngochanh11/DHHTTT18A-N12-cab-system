@@ -1,0 +1,289 @@
+version: '3.8'
+
+services:
+  # ---------- DATABASE & MESSAGE QUEUE ----------
+  postgres:
+    image: postgres:15-alpine
+    container_name: cab-postgres
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin123
+      POSTGRES_DB: cab_booking
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - cab-network
+
+  mongodb:
+    image: mongo:6
+    container_name: cab-mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: admin123
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb_data:/data/db
+    networks:
+      - cab-network
+
+  redis:
+    image: redis:7-alpine
+    container_name: cab-redis
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - cab-network
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.0
+    container_name: cab-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    networks:
+      - cab-network
+
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    container_name: cab-kafka
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://localhost:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    ports:
+      - "9092:9092"
+    networks:
+      - cab-network
+
+  # ---------- API GATEWAY ----------
+  api-gateway:
+    build: ./api-gateway
+    container_name: cab-api-gateway
+    ports:
+      - "3000:3000"
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      AUTH_SERVICE_URL: http://auth-service:3001
+      USER_SERVICE_URL: http://user-service:3002
+      DRIVER_SERVICE_URL: http://driver-service:3003
+      BOOKING_SERVICE_URL: http://booking-service:3004
+      RIDE_SERVICE_URL: http://ride-service:3005
+      PAYMENT_SERVICE_URL: http://payment-service:3007
+      PRICING_SERVICE_URL: http://pricing-service:3008
+      NOTIFICATION_SERVICE_URL: http://notification-service:3009
+      REVIEW_SERVICE_URL: http://review-service:3010
+    depends_on:
+      - auth-service
+      - user-service
+    networks:
+      - cab-network
+    restart: unless-stopped
+
+  # ---------- AUTH SERVICE ----------
+  auth-service:
+    build: ./services/auth-service
+    container_name: cab-auth-service
+    ports:
+      - "3001:3001"
+    environment:
+      NODE_ENV: development
+      PORT: 3001
+      DATABASE_URL: postgresql://admin:admin123@postgres:5432/cab_booking
+      REDIS_URL: redis://redis:6379
+      JWT_SECRET: your_super_secret_jwt_key_here
+      JWT_EXPIRES_IN: 15m
+      REFRESH_TOKEN_EXPIRES_IN: 7d
+    depends_on:
+      - postgres
+      - redis
+    networks:
+      - cab-network
+    restart: unless-stopped
+
+  # ---------- USER SERVICE ----------
+  user-service:
+    build: ./services/user-service
+    container_name: cab-user-service
+    ports:
+      - "3002:3002"
+    environment:
+      NODE_ENV: development
+      PORT: 3002
+      DATABASE_URL: postgresql://admin:admin123@postgres:5432/cab_booking
+    depends_on:
+      - postgres
+    networks:
+      - cab-network
+    restart: unless-stopped
+
+  # ---------- DRIVER SERVICE ----------
+  driver-service:
+    build: ./services/driver-service
+    container_name: cab-driver-service
+    ports:
+      - "3003:3003"
+    environment:
+      NODE_ENV: development
+      PORT: 3003
+      DATABASE_URL: mongodb://admin:admin123@mongodb:27017/driver_db?authSource=admin
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      - mongodb
+      - redis
+    networks:
+      - cab-network
+    restart: unless-stopped
+
+  # ---------- BOOKING SERVICE ----------
+  booking-service:
+    build: ./services/booking-service
+    container_name: cab-booking-service
+    ports:
+      - "3004:3004"
+    environment:
+      NODE_ENV: development
+      PORT: 3004
+      DATABASE_URL: postgresql://admin:admin123@postgres:5432/cab_booking
+      KAFKA_BROKERS: kafka:9092
+    depends_on:
+      - postgres
+      - kafka
+    networks:
+      - cab-network
+    restart: unless-stopped
+
+  # ---------- RIDE SERVICE (Real-time GPS) ----------
+  ride-service:
+    build: ./services/ride-service
+    container_name: cab-ride-service
+    ports:
+      - "3005:3005"
+      - "3006:3006" # WebSocket port
+    environment:
+      NODE_ENV: development
+      HTTP_PORT: 3005
+      WS_PORT: 3006
+      REDIS_URL: redis://redis:6379
+      KAFKA_BROKERS: kafka:9092
+    depends_on:
+      - redis
+      - kafka
+    networks:
+      - cab-network
+    restart: unless-stopped
+
+  # ---------- PAYMENT SERVICE ----------
+  payment-service:
+    build: ./services/payment-service
+    container_name: cab-payment-service
+    ports:
+      - "3007:3007"
+    environment:
+      NODE_ENV: development
+      PORT: 3007
+      DATABASE_URL: postgresql://admin:admin123@postgres:5432/cab_booking
+      STRIPE_SECRET_KEY: ${STRIPE_SECRET_KEY:-sk_test_xxx}
+      VNPAY_SECRET_KEY: ${VNPAY_SECRET_KEY:-xxx}
+    depends_on:
+      - postgres
+    networks:
+      - cab-network
+    restart: unless-stopped
+
+  # ---------- PRICING SERVICE ----------
+  pricing-service:
+    build: ./services/pricing-service
+    container_name: cab-pricing-service
+    ports:
+      - "3008:3008"
+    environment:
+      NODE_ENV: development
+      PORT: 3008
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      - redis
+    networks:
+      - cab-network
+    restart: unless-stopped
+
+  # ---------- NOTIFICATION SERVICE ----------
+  notification-service:
+    build: ./services/notification-service
+    container_name: cab-notification-service
+    ports:
+      - "3009:3009"
+    environment:
+      NODE_ENV: development
+      PORT: 3009
+      KAFKA_BROKERS: kafka:9092
+      REDIS_URL: redis://redis:6379
+    depends_on:
+      - kafka
+      - redis
+    networks:
+      - cab-network
+    restart: unless-stopped
+
+  # ---------- REVIEW SERVICE ----------
+  review-service:
+    build: ./services/review-service
+    container_name: cab-review-service
+    ports:
+      - "3010:3010"
+    environment:
+      NODE_ENV: development
+      PORT: 3010
+      DATABASE_URL: mongodb://admin:admin123@mongodb:27017/review_db?authSource=admin
+    depends_on:
+      - mongodb
+    networks:
+      - cab-network
+    restart: unless-stopped
+
+  # ---------- MONITORING ----------
+  prometheus:
+    image: prom/prometheus:latest
+    container_name: cab-prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - cab-network
+
+  grafana:
+    image: grafana/grafana:latest
+    container_name: cab-grafana
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - grafana_data:/var/lib/grafana
+    networks:
+      - cab-network
+    depends_on:
+      - prometheus
+
+# ---------- VOLUMES ----------
+volumes:
+  postgres_data:
+  mongodb_data:
+  redis_data:
+  grafana_data:
+
+# ---------- NETWORK ----------
+networks:
+  cab-network:
+    driver: bridge

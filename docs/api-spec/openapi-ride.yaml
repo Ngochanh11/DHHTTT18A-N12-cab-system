@@ -1,0 +1,281 @@
+openapi: 3.0.3
+info:
+  title: Ride Service API
+  description: Real-time ride tracking and management
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:3005/api/v1
+    description: HTTP API
+  - url: ws://localhost:3006
+    description: WebSocket server
+
+tags:
+  - name: Ride Tracking
+    description: Real-time ride tracking
+  - name: WebSocket
+    description: WebSocket connections
+  - name: Ride Management
+    description: Ride status updates
+
+paths:
+  /rides/{rideId}:
+    get:
+      tags: [Ride Tracking]
+      summary: Get ride details
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: rideId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Ride details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RideDetail'
+
+  /rides/{rideId}/tracking:
+    get:
+      tags: [Ride Tracking]
+      summary: Get ride tracking info
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: rideId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Tracking information
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrackingInfo'
+
+  /rides/{rideId}/location:
+    put:
+      tags: [Ride Tracking]
+      summary: Update driver location (fallback)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: rideId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [lat, lng]
+              properties:
+                lat:
+                  type: number
+                  format: float
+                lng:
+                  type: number
+                  format: float
+                accuracy:
+                  type: number
+                  format: float
+      responses:
+        '200':
+          description: Location updated
+
+  /rides/{rideId}/status:
+    put:
+      tags: [Ride Management]
+      summary: Update ride status
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: rideId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [status]
+              properties:
+                status:
+                  type: string
+                  enum: [arriving, started, completed, cancelled]
+      responses:
+        '200':
+          description: Status updated
+
+  /rides/active:
+    get:
+      tags: [Ride Management]
+      summary: Get active ride for user/driver
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: type
+          schema:
+            type: string
+            enum: [passenger, driver]
+      responses:
+        '200':
+          description: Active ride
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RideDetail'
+        '404':
+          description: No active ride
+
+  /rides/{rideId}/sos:
+    post:
+      tags: [Ride Management]
+      summary: Send SOS signal
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: rideId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: SOS signal sent
+
+# WebSocket Endpoints
+  /ws/driver:
+    get:
+      tags: [WebSocket]
+      summary: Connect as driver (WebSocket)
+      description: |
+        WebSocket connection for drivers to send real-time location updates.
+        
+        Events:
+        - Connect: Send authentication token in query parameter
+        - Send: {"event": "location_update", "data": {"lat": 10.0, "lng": 106.0, "accuracy": 10}}
+        - Receive: {"event": "ride_assigned", "data": {...}}
+      parameters:
+        - in: query
+          name: token
+          required: true
+          schema:
+            type: string
+      responses:
+        '101':
+          description: Switching Protocols
+
+  /ws/passenger/{rideId}:
+    get:
+      tags: [WebSocket]
+      summary: Connect as passenger (WebSocket)
+      description: |
+        WebSocket connection for passengers to receive real-time updates.
+        
+        Events:
+        - Connect: Send authentication token in query parameter
+        - Receive: {"event": "driver_location", "data": {"lat": 10.0, "lng": 106.0}}
+      parameters:
+        - in: path
+          name: rideId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: token
+          required: true
+          schema:
+            type: string
+      responses:
+        '101':
+          description: Switching Protocols
+
+components:
+  schemas:
+    RideDetail:
+      type: object
+      properties:
+        id:
+          type: string
+        bookingId:
+          type: string
+        driverId:
+          type: string
+        passengerId:
+          type: string
+        status:
+          type: string
+          enum: [assigned, arriving, started, completed, cancelled]
+        currentLocation:
+          $ref: '#/components/schemas/Location'
+        pickupLocation:
+          $ref: '#/components/schemas/Location'
+        destination:
+          $ref: '#/components/schemas/Location'
+        polyline:
+          type: string
+        startedAt:
+          type: string
+          format: date-time
+        completedAt:
+          type: string
+          format: date-time
+
+    TrackingInfo:
+      type: object
+      properties:
+        driverLocation:
+          $ref: '#/components/schemas/Location'
+        pickupLocation:
+          $ref: '#/components/schemas/Location'
+        destination:
+          $ref: '#/components/schemas/Location'
+        polyline:
+          type: string
+        eta:
+          type: integer
+          description: Estimated time in seconds
+        distanceRemaining:
+          type: number
+          format: float
+          description: Distance in kilometers
+        speed:
+          type: number
+          format: float
+          description: Speed in km/h
+
+    Location:
+      type: object
+      properties:
+        lat:
+          type: number
+          format: float
+        lng:
+          type: number
+          format: float
+        accuracy:
+          type: number
+          format: float
+        timestamp:
+          type: string
+          format: date-time
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

@@ -1,0 +1,281 @@
+openapi: 3.0.3
+info:
+  title: Payment Service API
+  description: Payment processing and management
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:3007/api/v1
+
+tags:
+  - name: Payments
+    description: Payment operations
+  - name: Payment Methods
+    description: Payment method management
+  - name: Webhooks
+    description: Payment gateway webhooks
+
+paths:
+  /payments:
+    post:
+      tags: [Payments]
+      summary: Create payment
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePaymentRequest'
+      responses:
+        '201':
+          description: Payment created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+
+  /payments/{paymentId}:
+    get:
+      tags: [Payments]
+      summary: Get payment by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: paymentId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Payment details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+
+  /payments/{paymentId}/confirm:
+    post:
+      tags: [Payments]
+      summary: Confirm payment
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: paymentId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Payment confirmed
+
+  /payments/{paymentId}/cancel:
+    post:
+      tags: [Payments]
+      summary: Cancel payment
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: paymentId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Payment cancelled
+
+  /payments/booking/{bookingId}:
+    get:
+      tags: [Payments]
+      summary: Get payment by booking ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: bookingId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Payment for booking
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+
+  /payments/methods:
+    get:
+      tags: [Payment Methods]
+      summary: Get available payment methods
+      responses:
+        '200':
+          description: List of payment methods
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PaymentMethod'
+
+  /payments/wallet/topup:
+    post:
+      tags: [Payments]
+      summary: Top up wallet
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TopUpRequest'
+      responses:
+        '200':
+          description: Top up initiated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Payment'
+
+# Webhook endpoints (no authentication)
+  /webhook/stripe:
+    post:
+      tags: [Webhooks]
+      summary: Stripe webhook
+      description: Receive Stripe payment events
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Webhook processed
+
+  /webhook/vnpay:
+    post:
+      tags: [Webhooks]
+      summary: VNPay webhook
+      description: Receive VNPay payment events
+      parameters:
+        - in: query
+          name: vnp_Amount
+          schema:
+            type: string
+        - in: query
+          name: vnp_BankCode
+          schema:
+            type: string
+        - in: query
+          name: vnp_ResponseCode
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Webhook processed
+
+  /webhook/momo:
+    post:
+      tags: [Webhooks]
+      summary: MoMo webhook
+      description: Receive MoMo payment events
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: Webhook processed
+
+components:
+  schemas:
+    CreatePaymentRequest:
+      type: object
+      required: [bookingId, amount, currency, method]
+      properties:
+        bookingId:
+          type: string
+        amount:
+          type: number
+          format: float
+        currency:
+          type: string
+          default: VND
+        method:
+          type: string
+          enum: [cash, credit_card, wallet, bank_transfer]
+        methodDetails:
+          type: object
+          description: Payment method specific details
+
+    Payment:
+      type: object
+      properties:
+        id:
+          type: string
+        bookingId:
+          type: string
+        userId:
+          type: string
+        amount:
+          type: number
+          format: float
+        currency:
+          type: string
+        method:
+          type: string
+        status:
+          type: string
+          enum: [pending, processing, completed, failed, refunded]
+        transactionId:
+          type: string
+          description: Gateway transaction ID
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    PaymentMethod:
+      type: object
+      properties:
+        id:
+          type: string
+        type:
+          type: string
+          enum: [cash, credit_card, wallet, bank_transfer]
+        name:
+          type: string
+        description:
+          type: string
+        icon:
+          type: string
+        isAvailable:
+          type: boolean
+
+    TopUpRequest:
+      type: object
+      required: [amount, method]
+      properties:
+        amount:
+          type: number
+          format: float
+          minimum: 10000
+        method:
+          type: string
+          enum: [credit_card, bank_transfer, momo, zalopay]
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

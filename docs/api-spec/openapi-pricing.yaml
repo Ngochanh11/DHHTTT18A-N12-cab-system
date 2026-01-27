@@ -1,0 +1,313 @@
+openapi: 3.0.3
+info:
+  title: Pricing Service API
+  description: Dynamic pricing and fare calculation
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:3008/api/v1
+
+tags:
+  - name: Pricing
+    description: Fare calculation
+  - name: Surge Pricing
+    description: Dynamic surge pricing
+  - name: Configuration
+    description: Pricing configuration (Admin)
+
+paths:
+  /pricing/estimate:
+    post:
+      tags: [Pricing]
+      summary: Estimate ride fare
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FareEstimateRequest'
+      responses:
+        '200':
+          description: Fare estimate
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FareEstimate'
+
+  /pricing/surge/{zoneId}:
+    get:
+      tags: [Surge Pricing]
+      summary: Get surge multiplier for zone
+      parameters:
+        - in: path
+          name: zoneId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Surge multiplier
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  zoneId:
+                    type: string
+                  multiplier:
+                    type: number
+                    format: float
+                  updatedAt:
+                    type: string
+                    format: date-time
+
+    put:
+      tags: [Surge Pricing]
+      summary: Update surge multiplier (Admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: zoneId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [multiplier]
+              properties:
+                multiplier:
+                  type: number
+                  format: float
+                  minimum: 1.0
+      responses:
+        '200':
+          description: Surge updated
+
+  /pricing/surge/zones:
+    get:
+      tags: [Surge Pricing]
+      summary: Get all surge zones
+      responses:
+        '200':
+          description: List of surge zones
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SurgeZone'
+
+  /pricing/config:
+    get:
+      tags: [Configuration]
+      summary: Get pricing configuration
+      responses:
+        '200':
+          description: Pricing configuration
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PricingConfig'
+
+    put:
+      tags: [Configuration]
+      summary: Update pricing configuration (Admin)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PricingConfig'
+      responses:
+        '200':
+          description: Configuration updated
+
+  /pricing/vehicle-types:
+    get:
+      tags: [Pricing]
+      summary: Get vehicle type pricing
+      responses:
+        '200':
+          description: Vehicle type pricing
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/VehicleTypePricing'
+
+components:
+  schemas:
+    FareEstimateRequest:
+      type: object
+      required: [pickup, destination]
+      properties:
+        pickup:
+          $ref: '#/components/schemas/Location'
+        destination:
+          $ref: '#/components/schemas/Location'
+        vehicleType:
+          type: string
+          enum: [economy, premium, luxury, van]
+          default: economy
+
+    FareEstimate:
+      type: object
+      properties:
+        baseFare:
+          type: number
+          format: float
+        distanceFare:
+          type: number
+          format: float
+        timeFare:
+          type: number
+          format: float
+        surgeMultiplier:
+          type: number
+          format: float
+        totalFare:
+          type: number
+          format: float
+        currency:
+          type: string
+        estimatedDistance:
+          type: number
+          format: float
+        estimatedDuration:
+          type: integer
+        breakdown:
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              amount:
+                type: number
+                format: float
+
+    SurgeZone:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        geometry:
+          type: object
+          description: GeoJSON polygon
+        multiplier:
+          type: number
+          format: float
+        demand:
+          type: number
+          format: float
+        supply:
+          type: number
+          format: float
+        lastUpdated:
+          type: string
+          format: date-time
+
+    PricingConfig:
+      type: object
+      properties:
+        baseFare:
+          type: number
+          format: float
+        perKilometer:
+          type: number
+          format: float
+        perMinute:
+          type: number
+          format: float
+        minimumFare:
+          type: number
+          format: float
+        currency:
+          type: string
+        timeBasedMultipliers:
+          type: array
+          items:
+            $ref: '#/components/schemas/TimeMultiplier'
+        distanceThresholds:
+          type: array
+          items:
+            $ref: '#/components/schemas/DistanceThreshold'
+
+    VehicleTypePricing:
+      type: object
+      properties:
+        type:
+          type: string
+        name:
+          type: string
+        description:
+          type: string
+        baseFareMultiplier:
+          type: number
+          format: float
+        perKmMultiplier:
+          type: number
+          format: float
+        perMinMultiplier:
+          type: number
+          format: float
+        capacity:
+          type: integer
+
+    TimeMultiplier:
+      type: object
+      properties:
+        startTime:
+          type: string
+          format: time
+        endTime:
+          type: string
+          format: time
+        multiplier:
+          type: number
+          format: float
+        daysOfWeek:
+          type: array
+          items:
+            type: integer
+            minimum: 0
+            maximum: 6
+
+    DistanceThreshold:
+      type: object
+      properties:
+        minDistance:
+          type: number
+          format: float
+        maxDistance:
+          type: number
+          format: float
+        multiplier:
+          type: number
+          format: float
+
+    Location:
+      type: object
+      properties:
+        lat:
+          type: number
+          format: float
+        lng:
+          type: number
+          format: float
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

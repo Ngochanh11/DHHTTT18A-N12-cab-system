@@ -1,0 +1,304 @@
+openapi: 3.0.3
+info:
+  title: Booking Service API
+  description: Ride booking and management
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:3004/api/v1
+
+tags:
+  - name: Bookings
+    description: Booking operations
+  - name: Ride Management
+    description: Ride status and updates
+
+paths:
+  /bookings:
+    post:
+      tags: [Bookings]
+      summary: Create new booking
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateBookingRequest'
+      responses:
+        '201':
+          description: Booking created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+        '400':
+          description: Invalid request
+
+    get:
+      tags: [Bookings]
+      summary: Get user bookings
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: status
+          schema:
+            type: string
+            enum: [pending, searching, assigned, ongoing, completed, cancelled]
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: List of bookings
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Booking'
+
+  /bookings/{bookingId}:
+    get:
+      tags: [Bookings]
+      summary: Get booking by ID
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: bookingId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Booking details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BookingDetail'
+
+    put:
+      tags: [Bookings]
+      summary: Update booking
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: bookingId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateBookingRequest'
+      responses:
+        '200':
+          description: Booking updated
+
+  /bookings/{bookingId}/cancel:
+    put:
+      tags: [Bookings]
+      summary: Cancel booking
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: bookingId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Booking cancelled
+
+  /bookings/estimate:
+    post:
+      tags: [Bookings]
+      summary: Estimate ride price and ETA
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [pickup, destination]
+              properties:
+                pickup:
+                  $ref: '#/components/schemas/Location'
+                destination:
+                  $ref: '#/components/schemas/Location'
+                vehicleType:
+                  type: string
+                  enum: [economy, premium, luxury, van]
+      responses:
+        '200':
+          description: Ride estimate
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RideEstimate'
+
+  /bookings/active:
+    get:
+      tags: [Ride Management]
+      summary: Get active booking for user
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Active booking
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+        '404':
+          description: No active booking
+
+components:
+  schemas:
+    CreateBookingRequest:
+      type: object
+      required: [pickup, destination, vehicleType]
+      properties:
+        pickup:
+          $ref: '#/components/schemas/Location'
+        destination:
+          $ref: '#/components/schemas/Location'
+        vehicleType:
+          type: string
+          enum: [economy, premium, luxury, van]
+        note:
+          type: string
+
+    Booking:
+      type: object
+      properties:
+        id:
+          type: string
+        userId:
+          type: string
+        pickup:
+          $ref: '#/components/schemas/Location'
+        destination:
+          $ref: '#/components/schemas/Location'
+        vehicleType:
+          type: string
+        status:
+          type: string
+          enum: [pending, searching, assigned, ongoing, completed, cancelled]
+        estimatedFare:
+          type: number
+          format: float
+        actualFare:
+          type: number
+          format: float
+        estimatedDuration:
+          type: integer
+          description: Duration in seconds
+        distance:
+          type: number
+          format: float
+          description: Distance in kilometers
+        createdAt:
+          type: string
+          format: date-time
+
+    BookingDetail:
+      allOf:
+        - $ref: '#/components/schemas/Booking'
+        - type: object
+          properties:
+            driverId:
+              type: string
+            driverName:
+              type: string
+            driverPhone:
+              type: string
+            vehiclePlate:
+              type: string
+            currentLocation:
+              $ref: '#/components/schemas/Location'
+            polyline:
+              type: string
+            startedAt:
+              type: string
+              format: date-time
+            completedAt:
+              type: string
+              format: date-time
+
+    UpdateBookingRequest:
+      type: object
+      properties:
+        note:
+          type: string
+        pickup:
+          $ref: '#/components/schemas/Location'
+        destination:
+          $ref: '#/components/schemas/Location'
+
+    RideEstimate:
+      type: object
+      properties:
+        estimatedFare:
+          type: number
+          format: float
+        estimatedDuration:
+          type: integer
+        distance:
+          type: number
+          format: float
+        surgeMultiplier:
+          type: number
+          format: float
+          default: 1.0
+        vehicleTypes:
+          type: array
+          items:
+            $ref: '#/components/schemas/VehicleTypeEstimate'
+
+    VehicleTypeEstimate:
+      type: object
+      properties:
+        type:
+          type: string
+        fare:
+          type: number
+          format: float
+        eta:
+          type: integer
+          description: Estimated time in minutes
+
+    Location:
+      type: object
+      required: [lat, lng, address]
+      properties:
+        lat:
+          type: number
+          format: float
+        lng:
+          type: number
+          format: float
+        address:
+          type: string
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

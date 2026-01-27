@@ -1,0 +1,271 @@
+openapi: 3.0.3
+info:
+  title: Review Service API
+  description: Ride reviews and ratings
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:3010/api/v1
+
+tags:
+  - name: Reviews
+    description: Ride reviews
+  - name: Ratings
+    description: User ratings
+
+paths:
+  /reviews:
+    post:
+      tags: [Reviews]
+      summary: Create review
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateReviewRequest'
+      responses:
+        '201':
+          description: Review created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Review'
+
+    get:
+      tags: [Reviews]
+      summary: Get reviews
+      parameters:
+        - in: query
+          name: targetId
+          schema:
+            type: string
+        - in: query
+          name: targetType
+          schema:
+            type: string
+            enum: [driver, passenger]
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+        - in: query
+          name: limit
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: List of reviews
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Review'
+
+  /reviews/{reviewId}:
+    get:
+      tags: [Reviews]
+      summary: Get review by ID
+      parameters:
+        - in: path
+          name: reviewId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Review details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Review'
+
+    put:
+      tags: [Reviews]
+      summary: Update review
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: reviewId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateReviewRequest'
+      responses:
+        '200':
+          description: Review updated
+
+  /reviews/driver/{driverId}:
+    get:
+      tags: [Reviews]
+      summary: Get reviews for driver
+      parameters:
+        - in: path
+          name: driverId
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: page
+          schema:
+            type: integer
+            default: 1
+      responses:
+        '200':
+          description: Driver reviews
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Review'
+
+  /reviews/user/{userId}:
+    get:
+      tags: [Reviews]
+      summary: Get reviews for user
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User reviews
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Review'
+
+  /ratings/driver/{driverId}:
+    get:
+      tags: [Ratings]
+      summary: Get driver rating summary
+      parameters:
+        - in: path
+          name: driverId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Rating summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RatingSummary'
+
+  /ratings/user/{userId}:
+    get:
+      tags: [Ratings]
+      summary: Get user rating summary
+      parameters:
+        - in: path
+          name: userId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Rating summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RatingSummary'
+
+components:
+  schemas:
+    CreateReviewRequest:
+      type: object
+      required: [bookingId, targetId, targetType, rating]
+      properties:
+        bookingId:
+          type: string
+        targetId:
+          type: string
+        targetType:
+          type: string
+          enum: [driver, passenger]
+        rating:
+          type: number
+          format: float
+          minimum: 1
+          maximum: 5
+        comment:
+          type: string
+
+    Review:
+      type: object
+      properties:
+        id:
+          type: string
+        bookingId:
+          type: string
+        reviewerId:
+          type: string
+        targetId:
+          type: string
+        targetType:
+          type: string
+        rating:
+          type: number
+          format: float
+        comment:
+          type: string
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+
+    UpdateReviewRequest:
+      type: object
+      properties:
+        rating:
+          type: number
+          format: float
+        comment:
+          type: string
+
+    RatingSummary:
+      type: object
+      properties:
+        averageRating:
+          type: number
+          format: float
+        totalReviews:
+          type: integer
+        ratingDistribution:
+          type: object
+          properties:
+            '1':
+              type: integer
+            '2':
+              type: integer
+            '3':
+              type: integer
+            '4':
+              type: integer
+            '5':
+              type: integer
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

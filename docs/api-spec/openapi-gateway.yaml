@@ -1,0 +1,206 @@
+openapi: 3.0.3
+info:
+  title: CAB Booking System API Gateway
+  description: Main API Gateway for CAB Booking System
+  version: 1.0.0
+  contact:
+    name: API Gateway Support
+    email: gateway@cabbooking.com
+
+servers:
+  - url: http://localhost:3000/api/v1
+    description: Development gateway
+  - url: https://api.cabbooking.com/api/v1
+    description: Production gateway
+
+tags:
+  - name: Authentication
+    description: Auth service endpoints
+  - name: Users
+    description: User service endpoints
+  - name: Drivers
+    description: Driver service endpoints
+  - name: Bookings
+    description: Booking service endpoints
+  - name: Payments
+    description: Payment service endpoints
+  - name: Rides
+    description: Ride service endpoints
+  - name: Reviews
+    description: Review service endpoints
+  - name: Notifications
+    description: Notification service endpoints
+  - name: Pricings
+    description: Pricing service endpoints
+  - name: Health
+    description: System health checks
+
+paths:
+  # Health check endpoint
+  /health:
+    get:
+      tags: [Health]
+      summary: System health check
+      responses:
+        '200':
+          description: System is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: "healthy"
+                  timestamp:
+                    type: string
+                    format: date-time
+                  services:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                        status:
+                          type: string
+                        responseTime:
+                          type: number
+
+  # All other endpoints are routed to respective services
+  # These are just references - actual routing is done by gateway
+
+  /auth/{path}:
+    get:
+      tags: [Authentication]
+      summary: Route to Auth Service
+      parameters:
+        - in: path
+          name: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Success
+
+  /users/{path}:
+    get:
+      tags: [Users]
+      summary: Route to User Service
+      parameters:
+        - in: path
+          name: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Success
+
+  # ... similar for other services
+  /drivers/{path}:
+    get:
+      tags: [Drivers]
+      summary: Route to Driver Service
+      parameters:
+        - in: path
+          name: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Success
+  
+  /bookings/{path}:
+    get:
+      tags: [Bookings]
+      summary: Route to Booking Service
+      parameters:
+        - in: path
+          name: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Success
+
+  /payments/{path}:
+    get:
+      tags: [Payments]
+      summary: Route to Payment Service
+      parameters:
+        - in: path
+          name: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Success
+
+  /rides/{path}:
+    get:
+      tags: [Rides]
+      summary: Route to Ride Service
+      parameters:
+        - in: path
+          name: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Success
+
+  /reviews/{path}:
+    get:
+      tags: [Reviews]
+      summary: Route to Review Service
+      parameters:
+        - in: path
+          name: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Success
+
+  /notifications/{path}:
+    get:
+      tags: [Notifications]
+      summary: Route to Notification Service
+      parameters:
+        - in: path
+          name: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Success
+  
+  /pricings/{path}:
+    get:
+      tags: [Pricings]
+      summary: Route to Pricing Service
+      parameters:
+        - in: path
+          name: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Success
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token from Auth Service
