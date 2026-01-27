@@ -228,9 +228,11 @@ services:
       PORT: 3009
       KAFKA_BROKERS: kafka:9092
       REDIS_URL: redis://redis:6379
+      DATABASE_URL: mongodb://admin:admin123@mongodb:27017/notification_db?authSource=admin
     depends_on:
       - kafka
       - redis
+      - mongodb
     networks:
       - cab-network
     restart: unless-stopped
