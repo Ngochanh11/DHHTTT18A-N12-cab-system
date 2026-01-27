@@ -1,0 +1,19 @@
+{
+  "name": "pricing-service",
+  "version": "1.0.0",
+  "description": "Pricing microservice for cab booking system",
+  "main": "src/app.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node src/app.js",
+    "dev": "nodemon src/app.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^17.2.3",
+    "express": "^4.19.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.11"
+  }
+}

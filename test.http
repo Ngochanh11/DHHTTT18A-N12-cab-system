@@ -1,0 +1,40 @@
+### 1. HEALTH CHECK
+GET http://localhost:3008/health
+
+
+### 2. ESTIMATE PRICE (OpenAPI compliant)
+POST http://localhost:3008/api/v1/pricing/estimate
+Content-Type: application/json
+
+{
+  "pickup": { "lat": 10.76, "lng": 106.66 },
+  "destination": { "lat": 10.78, "lng": 106.68 },
+  "vehicleType": "economy"
+}
+
+
+### 3. GET SURGE (AUTHORIZED)
+GET http://localhost:3008/api/v1/pricing/surge/HCM_D1
+Authorization: Bearer test
+
+
+### 4. LIST SURGE ZONES
+GET http://localhost:3008/api/v1/pricing/surge/zones
+Authorization: Bearer test
+
+
+### 5. GET VEHICLE TYPES
+GET http://localhost:3008/api/v1/pricing/vehicle-types
+Authorization: Bearer test
+
+
+### 6. AI DYNAMIC PRICING
+POST http://localhost:3008/api/v1/pricing/dynamic
+Content-Type: application/json
+
+{
+  "demand": 90,
+  "time": "peak",
+  "weather": "rain",
+  "events": true
+}
