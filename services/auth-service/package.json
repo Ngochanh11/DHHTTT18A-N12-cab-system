@@ -1,25 +1,30 @@
 {
-  "name": "ride-service",
+  "name": "auth-service",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Authentication and authorization microservice for ride-sharing system",
+  "main": "src/app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "start": "node src/app.js",
+    "dev": "nodemon src/app.js"
   },
-  "keywords": [],
+  "keywords": [
+    "auth",
+    "microservice",
+    "jwt",
+    "authentication"
+  ],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
   "dependencies": {
     "cors": "^2.8.5",
-    "dotenv": "^17.2.3",
-    "express": "^5.2.1",
-    "kafka-node": "^5.0.0",
-    "mongoose": "^9.1.4",
-    "pg": "^8.17.1",
-    "sequelize": "^6.37.7"
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "helmet": "^7.1.0",
+    "morgan": "^1.10.0",
+    "uuid": "^9.0.1"
   },
   "devDependencies": {
-    "nodemon": "^3.1.11"
+    "nodemon": "^3.0.2"
   }
 }
