@@ -1,12 +1,14 @@
-const express = require('express')
-const app = express()
+const express = require('express');
+const cors = require('cors');
+const userRoutes = require('./routes/user.routes');
 
-app.use(express.json())
 
-app.get('/health', (req, res) => {
-  res.send('Ride Service OK')
-})
+const app = express();
+app.use(cors());
+app.use(express.json());
 
-app.listen(4001, () => {
-  console.log('Ride Service running on port 4001')
-})
+
+app.use('/api/v1/users', userRoutes);
+
+
+module.exports = app;

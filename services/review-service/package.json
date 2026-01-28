@@ -1,12 +1,18 @@
 {
-  "name": "ride-service",
+  "name": "review-service",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "Review service for ride-sharing platform",
+  "main": "src/app.js",
   "scripts": {
+    "start": "node src/app.js",
+    "dev": "nodemon src/app.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": [],
+  "keywords": [
+    "review",
+    "rating",
+    "microservice"
+  ],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
@@ -14,6 +20,8 @@
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^5.2.1",
+    "joi": "^17.11.0",
+    "jsonwebtoken": "^9.0.3",
     "kafka-node": "^5.0.0",
     "mongoose": "^9.1.4",
     "pg": "^8.17.1",

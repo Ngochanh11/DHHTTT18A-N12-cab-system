@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  api-gateway:
+    build: ./api-gateway
+    container_name: cab-api-gateway
+    ports:
+      - "3000:3000"
+      - "3006:3006"  # Expose WebSocket port nếu cần
+    environment:
+      - PORT=3000
+      - NODE_ENV=production
+      - AUTH_SERVICE_URL=http://auth-service:3001
+      - USER_SERVICE_URL=http://user-service:3002
+      - DRIVER_SERVICE_URL=http://driver-service:3003
+      - BOOKING_SERVICE_URL=http://booking-service:3004
+      - RIDE_SERVICE_URL=http://ride-service:3005
+      - RIDE_WS_URL=ws://ride-service:3006
+      - PAYMENT_SERVICE_URL=http://payment-service:3007
+      - PRICING_SERVICE_URL=http://pricing-service:3008
+      - NOTIFICATION_SERVICE_URL=http://notification-service:3009
+      - REVIEW_SERVICE_URL=http://review-service:3010
+      - JWT_SECRET=${JWT_SECRET}
+    depends_on:
+      - auth-service
+      - user-service
+      - driver-service
+      - booking-service
+      - ride-service
+      - payment-service
+      - pricing-service
+      - notification-service
+      - review-service
+    networks:
+      - cab-network
+    restart: unless-stopped
+
+networks:
+  cab-network:
+    driver: bridge

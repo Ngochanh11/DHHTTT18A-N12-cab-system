@@ -1,0 +1,100 @@
+{
+  "info": {
+    "name": "Review Service API v1",
+    "description": "API collection for testing Review Service",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:4006/health",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "4006",
+          "path": ["health"]
+        }
+      }
+    },
+    {
+      "name": "Get All Reviews",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:4006/api/v1/reviews?page=1&limit=10",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "4006",
+          "path": ["api", "v1", "reviews"],
+          "query": [
+            {"key": "page", "value": "1"},
+            {"key": "limit", "value": "10"}
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get Driver Reviews",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:4006/api/v1/reviews?revieweeId=driver123&revieweeType=driver",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "4006",
+          "path": ["api", "v1", "reviews"],
+          "query": [
+            {"key": "revieweeId", "value": "driver123"},
+            {"key": "revieweeType", "value": "driver"}
+          ]
+        }
+      }
+    },
+    {
+      "name": "Get Driver Rating Summary",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:4006/api/v1/reviews/stats/driver123/driver",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "4006",
+          "path": ["api", "v1", "reviews", "stats", "driver123", "driver"]
+        }
+      }
+    },
+    {
+      "name": "Create Review",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          },
+          {
+            "key": "Authorization",
+            "value": "Bearer YOUR_JWT_TOKEN_HERE"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"rideId\": \"ride123\",\n  \"revieweeId\": \"driver456\",\n  \"revieweeType\": \"driver\",\n  \"rating\": 5,\n  \"comment\": \"Tài xế rất thân thiện và lái xe an toàn!\",\n  \"tags\": [\"friendly\", \"punctual\", \"clean_car\"],\n  \"isAnonymous\": false\n}"
+        },
+        "url": {
+          "raw": "http://localhost:4006/api/v1/reviews",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "4006",
+          "path": ["api", "v1", "reviews"]
+        }
+      }
+    }
+  ]
+}
